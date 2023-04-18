@@ -32,3 +32,7 @@ func (buffer *builderBuffer) reset() {
 func (buffer *builderBuffer) getString() string {
 	return buffer.builder.String()
 }
+
+func (buffer *builderBuffer) size() int {
+	return buffer.builder.Len()
+}

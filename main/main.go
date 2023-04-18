@@ -1,7 +1,7 @@
 package main
 
 import (
-	lightdouble "lightDouble"
+	lightdouble "lightDouble/lightDouble"
 	"strconv"
 	"time"
 )

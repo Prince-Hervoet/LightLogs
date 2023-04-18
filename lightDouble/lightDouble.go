@@ -20,8 +20,6 @@ type Logger interface {
 	Stop()
 }
 
-var singleLogger Logger = nil
-
 const ID_FORMAT = 'i'
 const LEVEL_FORMAT = 'l'
 const DATE_FORMAT = 'd'
@@ -75,22 +73,18 @@ func (logger *DoubleLogger) SetFormat(format string) {
 
 func (logger *DoubleLogger) Info(msg ...string) {
 	logger.syncWrite(INFO, msg)
-	// logger.goToBuffer(INFO, msg)
 }
 
 func (logger *DoubleLogger) Warn(msg ...string) {
 	logger.syncWrite(WARN, msg)
-	// logger.goToBuffer(WARN, msg)
 }
 
 func (logger *DoubleLogger) Error(msg ...string) {
 	logger.syncWrite(ERROR, msg)
-	// logger.goToBuffer(ERROR, msg)
 }
 
 func (logger *DoubleLogger) Debug(msg ...string) {
 	logger.syncWrite(DEBUG, msg)
-	// logger.goToBuffer(DEBUG, msg)
 }
 
 func (logger *DoubleLogger) Start() {
@@ -99,13 +93,15 @@ func (logger *DoubleLogger) Start() {
 	}
 	logger.logsBuffer = make(chan string, 1024)
 	if logger.filePointer != nil {
-		// go logger.write()
 		go flushTaskFunc(logger)
+		time.AfterFunc(3*time.Second, func() {
+			checkWriteBuffer(logger)
+		})
 	}
 }
 
 func (logger *DoubleLogger) Close() {
-	close(logger.logsBuffer)
+	close(logger.flushingList)
 	logger.logsBuffer = nil
 	writeStringToFile(logger.filePointer, logger.writeBuffer.getString())
 }
@@ -126,37 +122,6 @@ func (logger *DoubleLogger) syncWrite(level string, msg []string) {
 	}
 	logger.writeBuffer.write(content)
 }
-
-func (logger *DoubleLogger) goToBuffer(level string, msg []string) {
-	if logger.logsBuffer == nil {
-		return
-	}
-	content := jointMessage(level, logger.format, msg)
-	logger.logsBuffer <- content
-	fmt.Println(content)
-}
-
-// func (logger *DoubleLogger) write() {
-// 	fmt.Println("start write to buffer")
-// 	for mp := range logger.logsBuffer {
-// 		func() {
-// 			if logger.writeBuffer.write(mp) == 1 {
-// 				return
-// 			}
-// 			logger.mu.Lock()
-// 			defer logger.mu.Unlock()
-// 			logger.flushingList <- logger.writeBuffer
-// 			if logger.flushBuffer == nil {
-// 				logger.writeBuffer = newBuffer(logger.bufferLimit)
-// 			} else {
-// 				logger.writeBuffer = logger.flushBuffer
-// 				logger.flushBuffer = nil
-// 			}
-// 			logger.writeBuffer.write(mp)
-// 		}()
-// 	}
-
-// }
 
 func flushTaskFunc(dl *DoubleLogger) {
 	fmt.Println("start wait to flush")
@@ -220,3 +185,51 @@ func jointMessage(level string, format string, msg []string) string {
 	builder.WriteByte('\n')
 	return builder.String()
 }
+
+func checkWriteBuffer(dl *DoubleLogger) {
+	defer time.AfterFunc(3*time.Second, func() {
+		checkWriteBuffer(dl)
+	})
+	if dl.mu.TryLock() {
+		defer dl.mu.Unlock()
+	} else {
+		return
+	}
+	if dl.writeBuffer.size() == 0 || dl.flushBuffer == nil {
+		return
+	}
+	dl.flushingList <- dl.writeBuffer
+	dl.writeBuffer = dl.flushBuffer
+	dl.flushBuffer = nil
+}
+
+// func (logger *DoubleLogger) goToBuffer(level string, msg []string) {
+// 	if logger.logsBuffer == nil {
+// 		return
+// 	}
+// 	content := jointMessage(level, logger.format, msg)
+// 	logger.logsBuffer <- content
+// 	fmt.Println(content)
+// }
+
+// func (logger *DoubleLogger) write() {
+// 	fmt.Println("start write to buffer")
+// 	for mp := range logger.logsBuffer {
+// 		func() {
+// 			if logger.writeBuffer.write(mp) == 1 {
+// 				return
+// 			}
+// 			logger.mu.Lock()
+// 			defer logger.mu.Unlock()
+// 			logger.flushingList <- logger.writeBuffer
+// 			if logger.flushBuffer == nil {
+// 				logger.writeBuffer = newBuffer(logger.bufferLimit)
+// 			} else {
+// 				logger.writeBuffer = logger.flushBuffer
+// 				logger.flushBuffer = nil
+// 			}
+// 			logger.writeBuffer.write(mp)
+// 		}()
+// 	}
+
+// }

@@ -1,7 +1,7 @@
 package mylog
 
 import (
-	lightdouble "lightDouble"
+	lightdouble "lightDouble/lightDouble"
 	"strconv"
 	"testing"
 )
