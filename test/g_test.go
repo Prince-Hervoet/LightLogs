@@ -6,10 +6,6 @@ import (
 	"testing"
 )
 
-func TestGggg(t *testing.T) {
-	BenchmarkMyLog(&testing.B{})
-}
-
 func BenchmarkMyLog(b *testing.B) {
 	logger, _ := lightdouble.NewDoubleLogger(4096, 50, 200, "D:\\myprojects\\LightDouble\\test")
 	logger.Start()

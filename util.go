@@ -87,7 +87,6 @@ func LookupFileName(path string) string {
 	numStr := strings.Split(prevName, "-")[1]
 	num, err2 := strconv.ParseInt(numStr, 10, 64)
 	if err2 == nil {
-		fmt.Println(err2)
 		return "log-" + Int32ToStringAndZero(num+1, 10)
 	}
 	return ""
