@@ -39,8 +39,9 @@ type DoubleLogger struct {
 	flushBuffer    *builderBuffer
 	flushingList   chan *builderBuffer
 	logsBuffer     chan string
-	mu             *sync.Mutex
+	mu             sync.Mutex
 	filePointer    *os.File
+	ticker         *time.Ticker
 }
 
 // limit the max size of a buffer
@@ -62,7 +63,7 @@ func NewDoubleLogger(limit int, maxBufferCount int, waitingTime int64, path stri
 		flushingList:   make(chan *builderBuffer, maxBufferCount),
 		logsBuffer:     nil,
 		filePointer:    file,
-		mu:             &sync.Mutex{},
+		mu:             sync.Mutex{},
 	}, nil
 }
 
@@ -91,18 +92,23 @@ func (logger *DoubleLogger) Start() {
 	if logger.logsBuffer != nil {
 		return
 	}
-	logger.logsBuffer = make(chan string, 1024)
 	if logger.filePointer != nil {
+		duration := time.Duration(logger.waitingTime) * time.Millisecond
 		go flushTaskFunc(logger)
-		time.AfterFunc(3*time.Second, func() {
-			checkWriteBuffer(logger)
-		})
+		logger.ticker = time.NewTicker(duration)
+		go func() {
+			for range logger.ticker.C {
+				checkWriteBuffer(logger)
+			}
+		}()
 	}
 }
 
 func (logger *DoubleLogger) Close() {
 	close(logger.flushingList)
-	logger.logsBuffer = nil
+	if logger.ticker != nil {
+		logger.ticker.Stop()
+	}
 	writeStringToFile(logger.filePointer, logger.writeBuffer.getString())
 }
 
@@ -187,9 +193,6 @@ func jointMessage(level string, format string, msg []string) string {
 }
 
 func checkWriteBuffer(dl *DoubleLogger) {
-	defer time.AfterFunc(3*time.Second, func() {
-		checkWriteBuffer(dl)
-	})
 	if dl.mu.TryLock() {
 		defer dl.mu.Unlock()
 	} else {
