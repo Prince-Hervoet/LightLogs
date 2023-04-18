@@ -12,7 +12,7 @@ This is a logger,and it has two buffers to increase throughput.
   )
 
   func main() {
-    test, _ := lightdouble.NewDoubleLogger(32000, 100, 200, "D:\\myprojects\\LightDouble\\test")
+    test, _ := lightdouble.NewDoubleLogger(32000, 100, 200, "./test")
     test.Start()
     test.SetFormat("%s [%d] [%l] %s")
     wg := sync.WaitGroup{}
