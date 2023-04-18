@@ -11,10 +11,8 @@ func main() {
 	test.Start()
 	test.SetFormat("%s [%d] [%l] %s")
 	for i := 0; i < 10000; i++ {
-		test.Info(strconv.FormatInt(int64(i), 10), "asdfasdf")
+		test.Info(strconv.FormatInt(int64(i), 10), "这是一条日志")
 	}
 	time.Sleep(3000)
-	// test := lightdouble.Int32ToStringAndZero(123, 10)
-	// test := lightdouble.LookupFileName("D:\\myprojects\\LightDouble\\test")
-	// fmt.Println(test)
+	test.Close()
 }
